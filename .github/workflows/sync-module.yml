@@ -1,43 +1,26 @@
-name: Auto Sync Module from Asdos
+name: Auto Publish to Public Portfolio
 
 on:
   schedule:
-    # Jalan otomatis setiap hari Jumat jam 15.15 WIB (08:15 UTC)
-    # (Di-set 15 menit setelah bot Private lu rilis modul baru)
-    - cron: '15 8 * * 5'
-  workflow_dispatch: # Tetap bisa di-run manual oleh mahasiswa jika butuh
-
+    - cron: '0 8 * * 5'
 jobs:
-  sync:
+  publish:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write # Izin agar bot bisa melakukan commit & push
     steps:
-      - name: Checkout Repo Mahasiswa
+      - name: Checkout Repo Private
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Setup Git Config
+      - name: Push ke Repo Public Portfolio
         run: |
+          # Otomatis ngubah nama repo: private-praktikum-... -> praktikum-...
+          PUBLIC_REPO_NAME=$(echo "${{ github.event.repository.name }}" | sed 's/^private-//')
+          
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Fetch & Sync Modul dari Repo Asdos
-        run: |
-          # 1. Hubungkan ke Repo Public Asdos sebagai Upstream
-          git remote add upstream https://github.com/USERNAME/praktikum-pemrograman-2026.git || true
-          git fetch upstream main
-
-          # 2. Ambil hanya folder modul dari Repo Public Asdos (Tanpa ganggu kodingan mahasiswa)
-          git checkout upstream/main -- modul-01 modul-02 modul-03 modul-04 modul-05 || true
-
-          # 3. Commit dan Push ke Repo Mahasiswa jika ada perubahan/modul baru
-          if git status --porcelain | grep -q .; then
-            git add .
-            git commit -m "bot: auto update/sync module from upstream"
-            git push origin main
-            echo "Modul baru berhasil ditarik otomatis!"
-          else
-            echo "Belum ada modul baru dari Asdos."
-          fi
+          
+          # Hubungkan dan push ke repo public mahasiswa pakai PAT
+          git remote add destination "https://x-access-token:${{ secrets.PORTFOLIO_PAT }}@github.com/${{ github.repository_owner }}/${PUBLIC_REPO_NAME}.git" || true
+          git push destination main --force
+          echo "Kodingan berhasil di-publish ke portofolio publik!"
