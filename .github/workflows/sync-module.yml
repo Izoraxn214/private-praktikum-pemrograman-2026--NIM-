@@ -2,25 +2,28 @@ name: Auto Publish to Public Portfolio
 
 on:
   schedule:
+    # Jalan otomatis tiap hari Jumat jam 15.00 WIB (08:00 UTC)
     - cron: '0 8 * * 5'
+  workflow_dispatch: # Mahasiswa tetep bisa klik 'Run workflow' manual jika mau
+
 jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repo Private
+      - name: Checkout Repo Private Mahasiswa
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Push ke Repo Public Portfolio
+      - name: Auto Push ke Repo Public Portfolio Mahasiswa
         run: |
-          # Otomatis ngubah nama repo: private-praktikum-... -> praktikum-...
+          # 1. Otomatis potong kata "private-" buat dapet nama repo public + NIM mahasiswa
           PUBLIC_REPO_NAME=$(echo "${{ github.event.repository.name }}" | sed 's/^private-//')
           
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
-          # Hubungkan dan push ke repo public mahasiswa pakai PAT
+          # 2. Hubungkan dan push otomatis ke repo public mahasiswa pakai PORTFOLIO_PAT
           git remote add destination "https://x-access-token:${{ secrets.PORTFOLIO_PAT }}@github.com/${{ github.repository_owner }}/${PUBLIC_REPO_NAME}.git" || true
           git push destination main --force
-          echo "Kodingan berhasil di-publish ke portofolio publik!"
+          echo "Kodingan berhasil di-publish otomatis ke repo $PUBLIC_REPO_NAME!"
